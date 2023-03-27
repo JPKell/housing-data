@@ -1,1 +1,6 @@
 venv*
+.RData
+.Rhistory
+.Rproj.user
+comp4254_final.Rproj
+
