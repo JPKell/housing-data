@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Jordan Kell - COMP4254 Assignment 2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg" id="floater">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">Housing selling price model</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link{% if page=='home' %} active{% endif %}" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='exploration' %} active{% endif %}" href="/data-exploration">Exploration</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='preparation' %} active{% endif %}" href="/data-preparation">Preparation</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='modeling' %} active{% endif %}" href="/data-modeling">Modeling</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='evaluation' %} active{% endif %}" href="model-evaluation">Evaluation</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='deployment' %} active{% endif %}" href="model-deployment">Deployment</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link{% if page=='code' %} active{% endif %}" href="code">Code</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div class="container">
+{{ body|safe }}
+    </div>
+    <div class="row mt-5">
+      <div class="col-12 my-3 bg-secondary">
+        <footer class="footer">
+          <div class="container d-flex align-items-center justify-content-center my-2">
+            <span class="text-white">Jordan Kell - COMP4254 Assignment 2</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+    <script src="/static/site.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  </body>
+</html>
