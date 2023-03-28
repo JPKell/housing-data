@@ -1,8 +1,6 @@
-# Std lib imports 
 import os
 # Third party imports
 from flask import url_for
-from sklearn.linear_model import LinearRegression
 # Local imports
 import model 
 import style
@@ -178,6 +176,44 @@ def html() -> str:
 
         feat_table += f'<tr><td class="{highlight}">{feature}</td><td>'
 
+    # Multiple run results 
+    _str1  = 'YearRemodAdd,  KitchenQual_Ex,  BsmtQual_Ex,  TotalBathrooms,  YearBuilt,  GarageArea,  GrLivArea,  OverallQual,  TotRmsAbvGrd,  OverallCond,  Fireplaces,  TotalSquareFeet,  GarageCars,  TotalBsmtSF '
+    _str1 += 'GarageArea,  Fireplaces,  BsmtQual_Ex,  TotRmsAbvGrd,  YearBuilt,  TotalBsmtSF,  KitchenQual_Ex,  OverallCond,  GarageCars,  TotalBathrooms,  OverallQual,  TotalSquareFeet,  YearRemodAdd,  GrLivArea'
+    _str1 += 'GarageArea,  Fireplaces,  BsmtQual_Ex,  TotRmsAbvGrd,  YearBuilt,  TotalBsmtSF,  KitchenQual_Ex,  OverallCond,  GarageCars,  TotalBathrooms,  OverallQual,  TotalSquareFeet,  TotalSquareFeetPerRoom,  GrLivArea,  YearRemodAdd'
+    _str1 += 'GarageArea,  Fireplaces,  BsmtQual_Ex,  TotRmsAbvGrd,  YearBuilt,  TotalBsmtSF,  KitchenQual_Ex,  OverallCond,  1stFlrSF,  GarageCars,  TotalBathrooms,  OverallQual,  TotalSquareFeet,  YearRemodAdd,  GrLivArea'
+    _str1 += 'GarageArea,  Fireplaces,  BsmtQual_Ex,  TotRmsAbvGrd,  YearBuilt,  TotalBsmtSF,  KitchenQual_Ex,  OverallCond,  GarageCars,  TotalBathrooms,  OverallQual,  TotalSquareFeet,  TotalSquareFeetPerRoom,  GrLivArea,  YearRemodAdd'
+    _str1 += 'YearRemodAdd,  TotalSquareFeetPerRoom,  OverallQual,  TotalBsmtSF,  TotRmsAbvGrd,  KitchenQual_Ex,  BsmtQual_Ex,  TotalSquareFeet,  GarageCars,  OverallCond,  TotalBathrooms,  GrLivArea,  YearBuilt,  GarageArea,  Fireplaces'
+    _str1 += 'TotalBsmtSF,  KitchenQual_Ex,  TotalBathrooms,  YearBuilt,  YearRemodAdd,  OverallQual,  TotalSquareFeet,  TotRmsAbvGrd,  GarageCars,  OverallCond,  BsmtQual_Ex,  GrLivArea,  Fireplaces,  GarageArea'
+
+    _feat_dict = {}
+    _features = _str1.split(',')
+    _features = [x.strip() for x in _features]
+    _features = [x for x in _features if x != '']
+
+    for _feat in _features:
+        if _feat not in _feat_dict:
+            _feat_dict[_feat] = 1
+        else:
+            _feat_dict[_feat] += 1
+
+    _feat_dict = {k: v for k, v in sorted(_feat_dict.items(), key=lambda item: item[1], reverse=True)}
+
+    final_table = ''
+    for _feat in _feat_dict:
+        final_table += f'<tr><td>{_feat}</td><td>{_feat_dict[_feat]}</td></tr>'
+
+    final_column_selection = [x for x in _feat_dict.keys() if _feat_dict[x] >= 5]
+
+    # Create dataframes of the columns we are keeping and those we are dropping
+    df_keep = df[final_column_selection].copy(deep=True)
+    df_drop = df[[x for x in df.columns if x not in final_column_selection]].copy(deep=True)
+    target = df['SalePrice']
+
+    # pickle the dataframes
+    df_keep.to_pickle('data/df_keep.pkl')
+    df_drop.to_pickle('data/df_drop.pkl')
+    target.to_pickle('data/target.pkl')
+
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
     <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
@@ -305,7 +341,7 @@ def html() -> str:
         <div class="row mt-5">
             <div class="col-4 pe-1">
                 <div class="card h-100 text-center">
-                    <div class="card-header">Recursive feature elimination</div>
+                    <div class="card-header {style.bs_card_header}">Recursive feature elimination</div>
                     <div class="card-body">
                         RFE is a feature selection algorithm that works by recursively removing 
                         attributes and building a model on those attributes that remain.
@@ -317,7 +353,7 @@ def html() -> str:
             </div>
             <div class="col-4 pe-1">
                 <div class="card h-100 text-center">
-                    <div class="card-header">Forward feature selection</div>
+                    <div class="card-header {style.bs_card_header}">Forward feature selection</div>
                     <p class="mt-3">
                         Forward feature selection is an algorithm that works by finding the best feature, and then adding the next. The model 
                         is built on next best feature, and so on.
@@ -329,7 +365,7 @@ def html() -> str:
             </div>
             <div class="col-4">
                 <div class="card h-100 text-center">
-                    <div class="card-header">Feature importance</div>
+                    <div class="card-header {style.bs_card_header}">Feature importance</div>
                     <p class="mt-3">
                         Feature importance will be calculated based on the model coefficients. This will give an indication of which features
                         are most important to the model.
@@ -342,6 +378,8 @@ def html() -> str:
                 </div>
             </div>
         </div>
+        <p class="mt-5"> After running this a number of times and tracking the results. The features I will go into model building are </p>
+        <p><strong>Features selected:</strong>&nbsp; { ', &nbsp; '.join(final_column_selection) }</p>
     </div>
     <hr class="my-5" />
     <div class="row">
@@ -355,3 +393,6 @@ def html() -> str:
         f.write(html_str)
 
     return html_str
+
+
+

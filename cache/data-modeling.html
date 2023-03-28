@@ -1,0 +1,60 @@
+
+<div class="row mt-5" style="height:300px;">
+    <img src="/static/banner-home.jpg" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
+</div>    
+<h1 class="mt-5">Build the data model</h1>
+<p> 
+    There are multiple models to be built and evaluated. As noted in the initial exploration the data skews right and 
+    for many of the models that will bias the results. Scaling should help to normalize the data. Models must be selected
+    and evaluated. Then tweaked and evaluated again.
+</p>
+<hr class="my-5" />
+<h2>Scaling</h2>
+<p> 
+    The data is skewed right. Scaling should help to normalize the data. During model building I evaluated 4
+    different scaling methods. The results were .... 
+</p>
+<p><strong>Scalers used:</strong> StandardScaler, MinMaxScaler, RobustScaler</p>
+<hr class="my-5" />
+<h2>Models</h2>
+<p> 
+    The data is a linear regression problem. I evaluated the following models:
+</p>
+<div class="row">
+    <div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">LinearRegression()</div></div></div><div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">Ridge()</div></div></div><div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">Lasso()</div></div></div><div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">DecisionTreeRegressor()</div></div></div><div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">RandomForestRegressor(n_estimators=20)</div></div></div><div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">GradientBoostingRegressor(n_estimators=20)</div></div></div>
+</div> 
+<hr class="my-5" />
+<h2>Cross fold validation </h2>
+<p> 
+    The results of many runs are evaluated to determine the best model. The results of a single pass
+    with 5 folds are as follows:
+</p>
+<table class="table table-striped table-hover table-sm ">
+    <thead>
+        <tr>
+            <th scope="col">Model</th>
+            <th scope="col" style="width:10%;">StandardScaler</th>
+            <th scope="col" style="width:10%;">Std dev.</th>
+            <th scope="col" style="width:10%;">MinMaxScaler</th>
+            <th scope="col" style="width:10%;">Std dev.</th>
+            <th scope="col" style="width:10%;">RobustScaler</th>
+            <th scope="col" style="width:10%;">Std dev.</th>
+            <th scope="col" style="width:10%;">None</th>
+            <th scope="col" style="width:10%;">Std dev.</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>LinearRegression</td><td class="">34473.01</td><td class="">7204.81</td><td class="">35265.50</td><td class="">6821.03</td><td class="">34981.60</td><td class="">7162.04</td><td class="">35284.46</td><td class="">5680.86</td></tr><tr><td>Ridge</td><td class="">34708.80</td><td class="">4590.04</td><td class="">35189.56</td><td class="">4943.79</td><td class="">35009.21</td><td class="">8662.06</td><td class="">35167.24</td><td class="">4351.11</td></tr><tr><td>Lasso</td><td class="">34819.91</td><td class="">6478.79</td><td class="">36016.93</td><td class="">8925.77</td><td class="">35557.99</td><td class="">4777.57</td><td class="">34539.27</td><td class="">6683.24</td></tr><tr><td>DecisionTreeRegressor</td><td class="">39248.65</td><td class="">6155.37</td><td class="">36588.07</td><td class="">3283.75</td><td class="">38337.62</td><td class="">5438.20</td><td class="">38944.89</td><td class="">6495.01</td></tr><tr><td>RandomForestRegressor</td><td class="bg-warning text-dark">29030.38</td><td class="bg-warning text-dark">2619.47</td><td class="bg-warning text-dark">32060.86</td><td class="">3368.21</td><td class="bg-warning text-dark">32337.99</td><td class="">10104.63</td><td class="bg-warning text-dark">31335.40</td><td class="">4372.71</td></tr><tr><td>GradientBoostingRegressor</td><td class="">34184.49</td><td class="">2727.90</td><td class="">33500.83</td><td class="bg-warning text-dark">2646.08</td><td class="">34181.25</td><td class="bg-warning text-dark">2982.54</td><td class="">34962.95</td><td class="bg-warning text-dark">4176.98</td></tr>
+    </tbody>
+</table>
+<p> Over a number of runs it was clear that the best model was the <strong>Random Forest</strong> model. </p>
+
+
+<hr class="my-5" />
+<h2>Stacking </h2>
+<p> 
+    Stacking is a method of combining the results of multiple models. The results are that no scaler was outperforming 
+    the unscaled data. 
+</p>
+
+    

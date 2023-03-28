@@ -6,14 +6,20 @@ from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 
-from sklearn                    import metrics
 from sklearn.feature_selection  import f_regression, RFE
 from sklearn.linear_model       import LinearRegression
 from sklearn.model_selection    import train_test_split
-from sklearn.feature_selection  import chi2
-from sklearn.feature_selection  import SelectKBest
 from sklearn.preprocessing      import MinMaxScaler, RobustScaler, StandardScaler, MaxAbsScaler
 from sklearn.tree               import DecisionTreeRegressor 
+from sklearn.ensemble           import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model       import Ridge, Lasso, LinearRegression
+from sklearn.model_selection    import GridSearchCV
+from sklearn.pipeline           import make_pipeline
+from sklearn.model_selection    import KFold, cross_val_score
+from sklearn.metrics            import mean_squared_error
+from sklearn.metrics            import r2_score
+
+from sklearn.ensemble           import StackingRegressor
 
 from   sklearn.linear_model import LinearRegression
 from   sklearn.feature_selection import RFE
@@ -179,6 +185,47 @@ def feature_importance(X,y,n_features, names=None):
     model_coef = list(zip(names,model.coef_))
     model_coef.sort(key=lambda x: x[1], reverse=True)
     return [ feat for feat, score in model_coef[:n_features] ]
+
+# Evaluation
+def evaluate_model(model, scaler, x, y, folds=5):
+    ''' Returns a dictionary of the model evaluation metrics '''
+   
+    if not isinstance(scaler, type(None)):
+        scaler = scaler()
+    kf = KFold(n_splits=folds, shuffle=True)
+
+    run_data = []
+    for train_index, test_index in kf.split(x):
+        if not isinstance(scaler, type(None)):
+            x_train = scaler.fit_transform(x.loc[train_index])
+            x_test  = scaler.transform(x.loc[test_index])
+        else:
+            x_train = x.loc[train_index]
+            x_test  = x.loc[test_index]
+
+        y_train = y.loc[train_index]
+        y_test  = y.loc[test_index]
+
+        # Fit the model
+        model.fit(x_train, y_train)
+
+        # Predict the target
+        y_pred = model.predict(x_test)
+
+        # Calculate the evaluation metrics
+        mse = mean_squared_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+        run_data.append({'Model': model, 'Scaler': scaler, 'RMSE': rmse})
+
+    return run_data
+
+def stack_models(models, x,y):
+    ''' Returns a stacked model '''
+    meta_model = LinearRegression()
+    stacked_model = StackingRegressor(estimators=models, final_estimator=meta_model)
+    stacked_model.fit(x,y)
+    return stacked_model
+    
 
 # Outputs
 def svg_histogram(x,figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, **kwargs) -> str:

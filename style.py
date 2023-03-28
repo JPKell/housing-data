@@ -10,10 +10,16 @@ dark      = '#212529'
 # Default colors
 css_color = success
 bs_color  = 'success'
+# Bs component defaults
+bs_card_header = f'bg-{bs_color} text-white'
+
 
 # Feature elimnation colors
 top_hit = 'bg-success text-white' 
 secondary_hit = 'bg-warning'
+table_highlight = 'bg-warning text-dark'
+
+
 
 table="table table-striped table-hover table-sm "
 accordion="accordion accordion-flush my-3"
