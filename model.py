@@ -219,13 +219,29 @@ def evaluate_model(model, scaler, x, y, folds=5):
 
     return run_data
 
-def stack_models(models, x,y):
+def stack_models(models, x_train, y_train, x_test, y_test):
     ''' Returns a stacked model '''
-    meta_model = LinearRegression()
-    stacked_model = StackingRegressor(estimators=models, final_estimator=meta_model)
-    stacked_model.fit(x,y)
+    predictions = pd.DataFrame()
+
+    for model in models:
+        model.fit(x_train, y_train) 
+        if isinstance(model, LinearRegression):
+            predictions[model] = model.predict(x_test)
+        predictions[model] = model.predict(x_test)
+
+    stacked_model = LinearRegression()
+    stacked_model.fit(predictions, y_test)
+
     return stacked_model
     
+def model_stacker(models, x_train, y_train):
+    ''' Returns a stacked model '''
+    meta_model    = LinearRegression()
+    stacked_model = StackingRegressor(estimators=models, final_estimator=meta_model)
+    stacked_model.fit(x_train, y_train)
+    return stacked_model
+
+
 
 # Outputs
 def svg_histogram(x,figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, **kwargs) -> str:
@@ -300,4 +316,34 @@ def svg_categorical_bar(x:pd.DataFrame,plain=False, figsize=(10,5), x_lab:str=No
         FigureCanvasSVG(fig).print_svg(file)
         svg = file.getvalue()
     svg = svg.replace('width="720pt" height="360pt"', 'width="80%" height="100%"')
+    return svg
+
+def svg_rmse(df, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, std_dev=False, legend=True, moving_average=10, **kwargs) -> str:
+    ''' Creates a matplotlib line plot and returns the svg as a string '''
+    fig = Figure(figsize=figsize, tight_layout=True)
+    ax = fig.subplots(1,1)
+
+    if std_dev:
+        df = df.rolling(moving_average).std()
+    else:
+        # Create a moving average
+        df = df.rolling(moving_average).mean()
+
+    ax.plot(df,  **kwargs)
+
+    if legend:
+        ax.legend(df.columns)
+
+    if x_lab:
+        ax.set_xlabel(x_lab, **style.font)
+    if y_lab:
+        ax.set_ylabel(y_lab, **style.font)
+    if title:
+        ax.set_title(title, **style.font)
+
+    # Rather than write out the file, just store it in a buffer. 
+    with StringIO() as file:
+        FigureCanvasSVG(fig).print_svg(file)
+        svg = file.getvalue()
+    svg = svg.replace('width="720pt" height="360pt"', 'width="100%" height="100%"')
     return svg

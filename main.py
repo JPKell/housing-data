@@ -28,9 +28,13 @@ def data_modeling_page():
 def model_evaluation_page():
     return render_template("page.html", page='evaluation',body=model_evaluation.html())
 
-@app.route("/model-deployment")
+@app.route("/model-deployment", methods=["GET", "POST"])
 def model_deployment_pagge():
-    return render_template("page.html", page='deployment',body=model_deployment.html())
+    data = None
+    if request.method == 'POST':
+        # Get the data from the POST request.
+        data = request.form.to_dict()
+    return render_template("page.html", page='deployment',body=model_deployment.html(form=data))
 
 @app.route("/code")
 def assignment_code_page():

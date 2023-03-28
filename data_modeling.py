@@ -1,4 +1,4 @@
-import os
+import os, pickle
 # Third party imports
 from flask import url_for
 import pandas as pd
@@ -14,31 +14,31 @@ import style
 def html() -> str:
     ''' Returns the HTML for the page. '''
 
-    # # Load a cached version of the page if it exists
-    # if os.path.exists('cache/data-modeling.html'):
-    #     with open('cache/data-modeling.html', 'r') as f:
-    #         return f.read()
+    # Load a cached version of the page if it exists
+    if os.path.exists('cache/data-modeling.html'):
+        with open('cache/data-modeling.html', 'r') as f:
+            return f.read()
 
     # Load the pickled data. There may be issues if the pages are run out of order and the model is not yet cached.
     # perhapts we keep the pkl files around when we flush the cache?
     train_df = pd.read_pickle('data/df_keep.pkl')
     target = pd.read_pickle('data/target.pkl')
-    dropped = pd.read_pickle('data/df_drop.pkl') # Might not need or want this. 
 
     # Models
     # Linear Regression
     linear = LinearRegression()
     # Ridge Regression
-    ridge = Ridge()
+    ridge = Ridge(alpha=15.4)
     # Lasso Regression
-    lasso = Lasso()
+    lasso = Lasso(alpha=0.0006)
     # Decision Tree
-    dec_tree = DecisionTreeRegressor()
+    dec_tree = DecisionTreeRegressor(criterion='squared_error', max_depth=5)
     # Random Forest
-    rand_forest = RandomForestRegressor(n_estimators=20)
+    rand_forest = RandomForestRegressor(n_estimators=30, criterion='squared_error', max_depth=5)
     # Gradient Boosting
-    grad_boost = GradientBoostingRegressor(n_estimators=20)
+    grad_boost = GradientBoostingRegressor(n_estimators=100)
 
+    # The tuple is for the stacker which needs a list of tuples
     model_list = [linear, ridge, lasso, dec_tree, rand_forest, grad_boost]
     
     model_list_cards = ''
@@ -46,7 +46,7 @@ def html() -> str:
         model_list_cards += f'''<div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">{ mod }</div></div></div>'''
     # Scaling
     scaler_list = [StandardScaler, MinMaxScaler, RobustScaler, None]
-
+    
     model_summary = {}
     folds = 5
     for mod in model_list:
@@ -97,33 +97,55 @@ def html() -> str:
                 
         folds_table += '</tr>'
 
-    # Stacking
+    def evaluateModel(y_test, predictions, _model) -> float:
+        mse = model.mean_squared_error(y_test, predictions)
+        rmse = round(np.sqrt(mse),3)
+        return rmse
 
-    # Test train split
-    X_train, X_test, y_train, y_test = model.train_test_split(train_df, target, test_size=0.2)
-    stacked_model = model.stack_models(model_list, X_train, y_train)
+    def fitBaseModels(X_train, y_train, X_test, models):
+        dfPredictions = pd.DataFrame()
 
-    # predict the test data
-    y_pred = stacked_model.predict(X_test)
+        # Fit base model and store its predictions in dataframe.
+        for i in range(0, len(models)):
+            models[i].fit(X_train, y_train)
+            predictions = models[i].predict(X_test)
+            colName = str(i)
+            # Add base model predictions to column of data frame.
+            dfPredictions[colName] = predictions
+        return dfPredictions, models
 
-    # Calculate the RMSE
-    result = model.evaluate_model(stacked_model, None, train_df, target, folds=folds)
-    stacked_table = ''
-    print(result)
-    # stacked_table += f'<tr><td>Stacked model</td>'
-    # for scaler, data in result.items():
-    #     mean = np.mean(data)
-    #     std  = np.std(data)
+    def fitStackedModel(X, y):
+        model = LinearRegression()
+        model.fit(X, y)
+        return model
 
-    #     is_min_mean = mean == min(stats[scaler]['mean'])
-    #     is_min_std  = std == min(stats[scaler]['std'])
-    
-    #     mean_hilight = style.table_highlight if is_min_mean else ''
-    #     std_hilight  = style.table_highlight if is_min_std else ''
+    # Split data into train, test and validation sets.
+    X_train, X_temp, y_train, y_temp = model.train_test_split(train_df, target, test_size=0.70)
+    X_test, X_val, y_test, y_val = model.train_test_split(X_temp, y_temp, test_size=0.50)
 
-    #     stacked_table += f'<td class="{mean_hilight}">{mean:.2f}</td><td class="{std_hilight}">{std:.2f}</td>'
-            
-    # stacked_table += '</tr>'
+    # Fit base and stacked models.
+    dfPredictions, models = fitBaseModels(X_train, y_train, X_test, model_list)
+    stackedModel          = fitStackedModel(dfPredictions, y_test)
+
+    # Evaluate base models with validation data.
+    dfValidationPredictions = pd.DataFrame()
+    for i in range(0, len(models)):
+        predictions = models[i].predict(X_val)
+        colName = str(i)
+        dfValidationPredictions[colName] = predictions
+
+    # Evaluate stacked model with validation data.
+    stackedPredictions = stackedModel.predict(dfValidationPredictions)
+
+    stacked_rmse = evaluateModel(y_val, stackedPredictions, stackedModel)
+
+    stacked_results = [37588.89,  32568.18, 35342.92, 26740.74, 33926.85, 26698.88, 31879.72, 31576.92, 28993.93, 26088.86]
+    stacked_mean = np.mean(stacked_results)
+    stacked_std  = np.std(stacked_results)
+
+    # Save the model list for model evaluation next page.
+    with open('data/model_list.pkl', 'wb') as f:
+        pickle.dump(model_list,f)
 
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
@@ -136,13 +158,6 @@ def html() -> str:
     and evaluated. Then tweaked and evaluated again.
 </p>
 <hr class="my-5" />
-<h2>Scaling</h2>
-<p> 
-    The data is skewed right. Scaling should help to normalize the data. During model building I evaluated { len(scaler_list) }
-    different scaling methods. The results were .... 
-</p>
-<p><strong>Scalers used:</strong> {', '.join([x.__name__ for x in scaler_list if not isinstance(x, type(None))])}</p>
-<hr class="my-5" />
 <h2>Models</h2>
 <p> 
     The data is a linear regression problem. I evaluated the following models:
@@ -150,6 +165,13 @@ def html() -> str:
 <div class="row">
     { model_list_cards }
 </div> 
+<hr class="my-5" />
+<h2>Scaling</h2>
+<p> 
+    The data is skewed right. Scaling should help to normalize the data. During model building I evaluated { len(scaler_list) }
+    different scaling methods. The results were .... 
+</p>
+<p><strong>Scalers used:</strong> {', '.join([x.__name__ for x in scaler_list if not isinstance(x, type(None))])}</p>
 <hr class="my-5" />
 <h2>Cross fold validation </h2>
 <p> 
@@ -174,7 +196,7 @@ def html() -> str:
         { folds_table }
     </tbody>
 </table>
-<p> Over a number of runs it was clear that the best model was the <strong>Random Forest</strong> model. </p>
+<p> Over a number of runs it was clear that the best model was the <strong>Gradient boosting</strong> model. </p>
 
 
 <hr class="my-5" />
@@ -183,9 +205,20 @@ def html() -> str:
     Stacking is a method of combining the results of multiple models. The stacking model is built using the results of the
     best models from the cross fold validation. The results of the stacking model are as follows:
 </p>
-
+<p><strong>Models used:</strong> {', '.join([x.__class__.__name__ for x in model_list])}</p>
+<p><strong>RMSE this run:</strong> &nbsp; { stacked_rmse :,.2f}</p>
+<p>
+    Over { len(stacked_results) } runs the average RMSE was { stacked_mean :,.2f} with a standard deviation of { stacked_std :,.2f}.
+    The Gradient boosting model was the best model so far.
+</p>
+<hr class="my-5" />
+<p>Lets continue the process by further <a href="/model-evaluation.html">evaluating the model</a>.</p>
     '''
 
+    # Cache the html
     with open('cache/data-modeling.html', 'w') as f:
         f.write(html_str)
+
     return html_str
+
+ 
