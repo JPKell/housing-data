@@ -15,9 +15,9 @@ def html() -> str:
     ''' Returns the HTML for the page. '''
 
     # Load a cached version of the page if it exists
-    # if os.path.exists('cache/data-modeling.html'):
-    #     with open('cache/data-modeling.html', 'r') as f:
-    #         return f.read()
+    if os.path.exists('cache/data-modeling.html'):
+        with open('cache/data-modeling.html', 'r') as f:
+            return f.read()
 
     # Load the pickled data. There may be issues if the pages are run out of order and the model is not yet cached.
     # perhapts we keep the pkl files around when we flush the cache?
@@ -25,25 +25,19 @@ def html() -> str:
     target = pd.read_pickle('data/target.pkl')
 
     # Models
-    # Linear Regression
     linear = LinearRegression()
-    # Ridge Regression
-    ridge = Ridge(alpha=15.4)
-    # Lasso Regression
-    lasso = Lasso(alpha=0.0006)
-    # Decision Tree
-    dec_tree = DecisionTreeRegressor(criterion='squared_error', max_depth=5)
-    # Random Forest
+    ridge  = Ridge(alpha=15.4)
+    lasso  = Lasso(alpha=0.0006)
+    dec_tree    = DecisionTreeRegressor(criterion='squared_error', max_depth=5)
     rand_forest = RandomForestRegressor(n_estimators=30, criterion='squared_error', max_depth=5)
-    # Gradient Boosting
-    grad_boost = GradientBoostingRegressor(n_estimators=100)
+    grad_boost  = GradientBoostingRegressor(n_estimators=100)
 
     # The tuple is for the stacker which needs a list of tuples
     model_list = [linear, ridge, lasso, dec_tree, rand_forest, grad_boost]
     
     model_list_cards = ''
     for mod in model_list:
-        model_list_cards += f'''<div class="col-6 p-1"><div class="card h-100 text-center"><div class="card-body">{ mod }</div></div></div>'''
+        model_list_cards += f'''<div class="col-6 p-1"><div class="card h-100 text-center bg-{style.bs_color} text-white"><div class="card-body">{ mod }</div></div></div>'''
     # Scaling
     scaler_list = [StandardScaler, MinMaxScaler, RobustScaler, None]
     
@@ -54,25 +48,18 @@ def html() -> str:
         for scaler in scaler_list:
             # Create a dictionary to store the results
             if scaler != None:
-                model_summary[mod.__class__.__name__][scaler.__name__] = {}
-                model_summary[mod.__class__.__name__][scaler.__name__]['rmse'] = []
-                model_summary[mod.__class__.__name__][scaler.__name__]['sd'] = []
-
+                model_summary[mod.__class__.__name__][scaler.__name__] = []
             else:
-                model_summary[mod.__class__.__name__]['None'] = {}
-                model_summary[mod.__class__.__name__]['None']['rmse'] = []
-                model_summary[mod.__class__.__name__]['None']['sd'] = []
+                model_summary[mod.__class__.__name__]['None'] = []
 
             result = model.evaluate_model(mod, scaler, train_df, target, folds=folds)
 
             # Store the results in the dictionary
             for d in result:
                 if scaler != None:
-                    model_summary[mod.__class__.__name__][scaler.__name__]['rmse'].append(d['RMSE'])
-                    model_summary[mod.__class__.__name__][scaler.__name__]['sd'].append(d['SD'])
+                    model_summary[mod.__class__.__name__][scaler.__name__].append(d['RMSE'])
                 else:
-                    model_summary[mod.__class__.__name__]['None']['rmse'].append(d['RMSE'])
-                    model_summary[mod.__class__.__name__]['None']['sd'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__]['None'].append(d['RMSE'])
 
     # Gather stats for the table so we can highlight the best results
     stats = {}
@@ -81,10 +68,11 @@ def html() -> str:
             stats[s] = {'mean':[], 'sd':[]}
         break
 
+    # Gather each scaler's mean and standard deviation for comparison
     for _model in model_summary:
         for _scaler, data in model_summary[_model].items():
-            mean = np.mean(data['rmse'])
-            std  = np.mean(data['sd'])
+            mean = np.mean(data)
+            std  = np.std(data)
             stats[_scaler]['mean'].append(mean)
             stats[_scaler]['sd'].append(std)
 
@@ -93,8 +81,8 @@ def html() -> str:
     for m in model_summary:
         folds_table += f'<tr><td>{ m }</td>'
         for scaler, data in model_summary[m].items():
-            mean = np.mean(data['rmse'])
-            std  = np.mean(data['sd'])
+            mean = np.mean(data)
+            std  = np.std(data)
 
             is_min_mean = mean == min(stats[scaler]['mean'])
             is_min_std  = std == min(stats[scaler]['sd'])
@@ -102,8 +90,7 @@ def html() -> str:
             mean_hilight = style.table_highlight if is_min_mean else ''
             std_hilight  = style.table_highlight if is_min_std else ''
 
-            folds_table += f'<td class="{mean_hilight}">{mean:.2f}</td><td class="{std_hilight}">{std:.2f}</td>'
-                
+            folds_table += f'<td class="{mean_hilight}">{mean:,.2f}</td><td class="{std_hilight}">{std:,.2f}</td>'        
         folds_table += '</tr>'
 
     def evaluateModel(y_test, predictions, _model) -> float:
@@ -150,7 +137,6 @@ def html() -> str:
 
     stacked_results = [37588.89,  32568.18, 35342.92, 26740.74, 33926.85, 26698.88, 31879.72, 31576.92, 28993.93, 26088.86]
     stacked_mean = np.mean(stacked_results)
-    stacked_std  = np.std(stacked_results)
 
     # Save the model list for model evaluation next page.
     with open('data/model_list.pkl', 'wb') as f:
@@ -161,90 +147,101 @@ def html() -> str:
         code = f.read().replace('<', '&lt;').replace('>', '&gt;')
 
     html_str = f'''
-<div class="row mt-5" style="height:300px;">
-    <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
-</div>    
-<h1 class="mt-5">Build the data model</h1>
-<p> 
-    There are multiple models to be built and evaluated. As noted in the initial exploration the data skews right and 
-    for many of the models that will bias the results. Scaling should help to normalize the data. Models must be selected
-    and evaluated. Then tweaked and evaluated again.
-</p>
-<hr class="my-5" />
-<h2>Models</h2>
-<p> 
-    The data is a linear regression problem. I evaluated the following models:
-</p>
-<div class="row">
-    { model_list_cards }
-</div> 
-<hr class="my-5" />
-<h2>Scaling</h2>
-<p> 
-    The data is skewed right. Scaling should help to normalize the data. During model building I evaluated { len(scaler_list) }
-    different scaling methods. The results were .... 
-</p>
-<p><strong>Scalers used:</strong> {', '.join([x.__name__ for x in scaler_list if not isinstance(x, type(None))])}</p>
-<hr class="my-5" />
-<h2>Cross fold validation </h2>
-<p> 
-    The results of many runs are evaluated to determine the best model. The results of a single pass
-    with { folds } folds are as follows:
-</p>
-<table class="{ style.table }">
-    <thead>
-        <tr>
-            <th scope="col">Model</th>
-            <th scope="col" style="width:10%;">StandardScaler</th>
-            <th scope="col" style="width:10%;">Std dev.</th>
-            <th scope="col" style="width:10%;">MinMaxScaler</th>
-            <th scope="col" style="width:10%;">Std dev.</th>
-            <th scope="col" style="width:10%;">RobustScaler</th>
-            <th scope="col" style="width:10%;">Std dev.</th>
-            <th scope="col" style="width:10%;">None</th>
-            <th scope="col" style="width:10%;">Std dev.</th>
-        </tr>
-    </thead>
-    <tbody>
-        { folds_table }
-    </tbody>
-</table>
-<p> Over a number of runs it was clear that the best model was the <strong>Gradient boosting</strong> model. </p>
+        <div class="row mt-5" style="height:300px;">
+            <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
+        </div>    
+        <h1 class="mt-5">Build the data model</h1>
+        <p> 
+            There are multiple models to be built and evaluated. A collection of regression algorithms will be used to build the model.
+            Once the models are built, they will be evaluated using cross fold validation. Stacking will also be used to develop a 
+            stacked model. The best model will be used to build to production model.
+        </p>
+        <hr class="my-5" />
+        <h2>Models</h2>
+        <p> 
+            The data is a linear regression problem. I evaluated the following models:
+        </p>
+        <div class="row">
+            { model_list_cards }
+        </div> 
+        <hr class="my-5" />
+        <h2>Scaling</h2>
+        <p> 
+            The data is skewed right. Scaling should help to normalize the data. During model building I evaluated { len(scaler_list) }
+            different scaling methods. 
+        </p>
+        <p><strong>Scalers used:</strong> {', '.join([x.__name__ for x in scaler_list if not isinstance(x, type(None))])}</p>
+        <p>In the end none of the scalers improved the model.</p>
+        <hr class="my-5" />
+        <h2>Cross fold validation </h2>
+        <p> 
+            Root Mean Squared Error (RMSE) and Standard Deviation (SD) are both measures of the 
+            spread of data. However, they are used in different contexts and have different 
+            interpretations when evaluating a linear regression model. RMSE is a metric used to 
+            evaluate the accuracy of a regression model and represents the average magnitude of 
+            the errors in the predictions. SD is a measure of the variability of the data around
+            the mean. In the context of evaluating a linear regression model, SD is often used 
+            to assess the goodness of fit of the model.
+        </p>
+        <p>    
+            The results of many runs are evaluated to determine the best model. The results of 
+            a single pass with { folds } folds are as follows:
+        </p>
+        <div class="row overflow-auto">
+            <table class="{ style.table }">
+                <thead>
+                    <tr>
+                        <th scope="col">Model</th>
+                        <th scope="col" style="width:10%;">StandardScaler</th>
+                        <th scope="col" style="width:10%;">Std dev.</th>
+                        <th scope="col" style="width:10%;">MinMaxScaler</th>
+                        <th scope="col" style="width:10%;">Std dev.</th>
+                        <th scope="col" style="width:10%;">RobustScaler</th>
+                        <th scope="col" style="width:10%;">Std dev.</th>
+                        <th scope="col" style="width:10%;">None</th>
+                        <th scope="col" style="width:10%;">Std dev.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    { folds_table }
+                </tbody>
+            </table>
+        </div>
+        <p> Over many of runs it was clear that the best model was the <strong>Gradient boosting</strong> model. </p>
 
-
-<hr class="my-5" />
-<h2>Stacking </h2>
-<p> 
-    Stacking is a method of combining the results of multiple models. The stacking model is built using the results of the
-    best models from the cross fold validation. The results of the stacking model are as follows:
-</p>
-<p><strong>Models used:</strong> {', '.join([x.__class__.__name__ for x in model_list])}</p>
-<p><strong>RMSE this run:</strong> &nbsp; { stacked_rmse :,.2f}</p>
-<p>
-    Over { len(stacked_results) } runs the average RMSE was { stacked_mean :,.2f} with a standard deviation of { stacked_std :,.2f}.
-    The Gradient boosting model was the best model so far.
-</p>
-<hr class="my-5" />
-<p>Lets continue the process by further <a href="/model-evaluation.html">evaluating the model</a>.</p>
-<hr class="my-5" />
-<div class="row">
-    <div class="{ style.accordion } mb-5" id="code">
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="headingOne">
-                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
-                   Page code
-                </button>
-            </h2>
-            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
-                <div class="accordion-body">
-                    <div class="row overflow-auto">
-                        <pre>{ code }</pre>
+        <hr class="my-5" />
+        <h2>Stacking </h2>
+        <p> 
+            Stacking is a method of combining the results of multiple models. The stacking model is built using the results of the
+            best models from the cross fold validation. The results of the stacking model are as follows:
+        </p>
+        <p><strong>Models used:</strong> {', '.join([x.__class__.__name__ for x in model_list])}</p>
+        <p><strong>RMSE this run:</strong> &nbsp; { stacked_rmse :,.2f}</p>
+        <p>
+            Over { len(stacked_results) } runs the average RMSE was { stacked_mean :,.2f}.
+            The Gradient boosting model was the best model so far.
+        </p>
+        <hr class="my-5" />
+        <p class="text-center">Continue the process by further <a class="text-secondary" href="/model-evaluation">evaluating the model</a>.</p>
+        <hr class="my-5" />
+        <div class="row">
+            <div class="{ style.accordion } mb-5" id="code">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="{ style.code_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                        Page code
+                        </button>
+                    </h2>
+                    <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                        <div class="accordion-body">
+                            <div class="row overflow-auto">
+                                <pre>{ code }</pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
     '''
 
     # Cache the html

@@ -24,5 +24,6 @@ table_highlight = 'bg-warning text-dark'
 table="table table-striped table-hover table-sm "
 accordion="accordion accordion-flush my-3"
 accordion_button=f"accordion-button bg-{bs_color} text-white py-2"
+code_button=f"accordion-button bg-secondary text-white py-2"
 # plots
 font = {'fontname':'sans-serif', 'size':'14'}

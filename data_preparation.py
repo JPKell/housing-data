@@ -9,17 +9,15 @@ def html() -> str:
     ''' Returns the HTML for the page. '''
 
     # Load a cached version of the page if it exists
-    # if os.path.exists('cache/data-preparation.html'):
-    #     with open('cache/data-preparation.html', 'r') as f:
-    #         return f.read()
+    if os.path.exists('cache/data-preparation.html'):
+        with open('cache/data-preparation.html', 'r') as f:
+            return f.read()
 
+    # Get a fresh copy of the data
     df = model.get_df_from_csv('data/housing.csv')
 
     # Remove postsale features
     df = model.drop_post_sale_columns(df)
-
-    # Remove Id column
-    df = model.drop_columns(df, ['Id'])
 
     # Impute missing values
     nulls = model.get_nulls(df)
@@ -35,13 +33,14 @@ def html() -> str:
     df = model.drop_columns(df, unacceptable_nulls)
 
     # Impute missing values
-    impute_zeros =['GarageType', 'GarageFinish', 'GarageQual', 'GarageCond', 'GarageYrBlt', 'BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2',]
+    impute_zeros =['GarageType', 'GarageFinish', 'GarageQual', 'GarageCond',   'GarageYrBlt',  
+                   'BsmtQual',   'BsmtCond',   'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2',]
     df = model.impute_zeros(df, impute_zeros)
 
     # Get the nulls again withouth the columns that were dropped
     nulls = model.get_nulls(df)
-    null_col = df[[name for name in nulls.keys()]]
     
+    # Impute the rest of the missing values and get the imputation report
     df, impute_report = model.impute_missing_values(df, nulls.keys())
     imput_report_table = [f'<tr><td>{name}</td><td>{ value }</td></tr>' for name, value in impute_report.items() ]
 
@@ -82,6 +81,7 @@ def html() -> str:
     drop_similar_keys = similar_keys[1::2]
     df = model.drop_columns(df, drop_similar_keys)
 
+    # Reduce categories by binning
     bin_list = []
     # Binarize columns
     bin_keys = ['LandContour', 'Condition1', 'PavedDrive', 'CentralAir', 'Electrical', 'Functional', 'GarageQual']
@@ -106,7 +106,8 @@ def html() -> str:
     reduced_categories = []
     active = 'active'
     for key in categorical_keys:
-        html_str =  f'''           <div class="carousel-item {active}">
+        html_str =  f'''           
+            <div class="carousel-item {active}">
                 <div class="d-flex justify-content-center">
                     { model.svg_categorical_bar(df[key], title=key) }
                 </div>
@@ -153,7 +154,7 @@ def html() -> str:
         elif feature in rfe_ffe_comm + rfe_feat_comm:
             highlight = style.secondary_hit
 
-        rfe_table += f'<tr><td class="{highlight}">{feature}</td><td>'
+        rfe_table += f'<tr class="{highlight}"><td>{feature}</td><td>'
 
     ffe_table = ''
     for feature in ffe:
@@ -163,7 +164,7 @@ def html() -> str:
         elif feature in rfe_ffe_comm + ffe_feat_comm:
             highlight = style.secondary_hit
 
-        ffe_table += f'<tr><td class="{highlight}">{feature}</td><td>'
+        ffe_table += f'<tr class="{highlight}"><td>{feature}</td><td>'
 
 
     feat_table = ''
@@ -174,7 +175,7 @@ def html() -> str:
         elif feature in rfe_feat_comm + ffe_feat_comm:
             highlight = style.secondary_hit
 
-        feat_table += f'<tr><td class="{highlight}">{feature}</td><td>'
+        feat_table += f'<tr class="{highlight}"><td>{feature}</td><td>'
 
     # Multiple run results 
     _str1  = 'YearRemodAdd,  KitchenQual_Ex,  BsmtQual_Ex,  TotalBathrooms,  YearBuilt,  GarageArea,  GrLivArea,  OverallQual,  TotRmsAbvGrd,  OverallCond,  Fireplaces,  TotalSquareFeet,  GarageCars,  TotalBsmtSF '
@@ -206,212 +207,223 @@ def html() -> str:
 
     # Create dataframes of the columns we are keeping and those we are dropping
     df_keep = df[final_column_selection].copy(deep=True)
-    df_drop = df[[x for x in df.columns if x not in final_column_selection]].copy(deep=True)
     target = df['SalePrice']
 
     # pickle the dataframes
     df_keep.to_pickle('data/df_keep.pkl')
-    df_drop.to_pickle('data/df_drop.pkl')
     target.to_pickle('data/target.pkl')
 
     with open('data_preparation.py', 'r') as f:
         code = f.read().replace('<','&lt;').replace('>','&gt;')
+
     html_str = f'''
-<div class="row mt-5" style="height:300px;">
-    <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
-</div>    
-<div class="row mt-5">
-    <h1>Data preparation</h1>
-
-    <p> In this section we will look at the data and how it was prepared for modeling. Using knowledge gained from the initial
-        analysis we will transform the data to improve the accuracy of the model. Some of the issues that require addressing are:
-    </p>
-    <div class="col">
-        <ul>
-            <li>Impute missing values</li>
-            <li>Initial feature reduction</li>
-            <li>Create dummy variables</li>
-            <li>Bin variables</li>
-            <li>Feature reduction through feature engineering</li>
-            <li>Automated feature selection algorithms</li>
-        </ul>
-    </div>
-    <p> The first thing to do is drop any post-sale data collected. We will not have this during production so lets get rid of it now. </p>
-</div>
-<hr class="my-5" />
-<div class="row">
-    <div class="col">
-        <h2>Impute missing values</h2>
-        <p class="mt-3"> The first step in preparing the data for modeling is to impute the missing values. There are {len(unacceptable_nulls)} columns with 
-            greater than { acceptable_nulls * 100 }% null values. These columns will be discarded as they wont be as easy to gather 
-            when feeding the final model production data. 
-        </p>
-
-        <p> A number of missing values are more likely to be features missing from the home rather than missing values. Therefore basement 
-            and garage features should be set to 0 or 'None' if they have nulls</p>
-        <p>Of the remaining columns with null values, there are a few numeric columns which are mainly integer values, finding the meadian will be 
-           better than the mean here. For categorical columns we will opt for the largest mode. </p>
-    </div>
-    <div class="col-6">
-        <table class='{ style.table } my-5'>
-            <tr><th>Dropped</th><th>Percent missing</th></tr>
-            { ''.join(null_percents_table) }
-        </table>
-        <table class='{ style.table }'>
-            <tr><th>Feature</th><th>Value imputed</th></tr>
-            { ''.join(imput_report_table) }
-        </table>
-    </div>
-    <hr class="my-5" />
-    <div class="col">
-        <h2>Initial feature reduction</h2>
-        <h3 class="mt-5">Feature engineering</h3>
-        <p class="mt-3"> The next step is to reduce the number of features through feature engineering. There are numerous features
-            that can be combined to create new features. This will reduce the number of features in the model, and give an easier value 
-            to input to the final model. A total of { len(features_removed) } features were removed and { len(features_consolidated) } 
-            features were created.</p>
-        <p><strong>Features created:</strong>&nbsp;{', '.join(features_consolidated)}</p>
-
-        <h3 class="mt-5">Remove columns with dominant categories</h3>
-        <p> Plotting the categorical columns shows that there are { len(drop_dominant_cols) } of columns that have a single dominant value. These columns
-            will be dropped as they will not add any value to the model. </p>
+        <div class="row mt-5" style="height:300px;">
+            <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
+        </div>    
+        <div class="row mt-5">
+            <h1>Data preparation</h1>
+            <p> 
+                In this section we will look at the data and how it was prepared for modeling. Using knowledge gained from the initial
+                analysis we will transform the data to improve the accuracy of the model. Some of the issues that require addressing are:
+            </p>
+            <div class="col">
+                <ul>
+                    <li>Impute missing values</li>
+                    <li>Initial feature reduction</li>
+                    <li>Create dummy variables</li>
+                    <li>Bin variables</li>
+                    <li>Feature reduction through feature engineering</li>
+                    <li>Automated feature selection algorithms</li>
+                </ul>
+            </div>
+            <p> The first thing to do is drop any post-sale data collected. We will not have this during production so lets get rid of it now. </p>
+        </div>
+        <hr class="my-5" />
         <div class="row">
-            <div id="deadFeatures" class="carousel carousel-dark carousel-fade slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    { ''.join(poor_categories) }
+            <div class="col">
+                <h2>Impute missing values</h2>
+                <p class="mt-3"> 
+                    The first step in preparing the data for modeling is to impute the missing values. There are {len(unacceptable_nulls)} columns with 
+                    greater than { acceptable_nulls * 100 }% null values. These columns will be discarded as they wont be as easy to gather 
+                    when feeding the final model production data. 
+                </p>
+                <p> 
+                    A number of missing values are more likely to be features missing from the home rather than missing values. 
+                    Therefore basement and garage features should be set to 0 or 'None' if they have nulls
+                </p>
+                <p>
+                    Of the remaining columns with null values, there are a few numeric columns which are mainly integer values, finding the meadian will be 
+                    better than the mean here. For categorical columns we will opt for the largest mode. 
+                </p>
+            </div>
+            <div class="col-6">
+                <table class='{ style.table } my-5'>
+                    <tr><th>Dropped</th><th>Percent missing</th></tr>
+                    { ''.join(null_percents_table) }
+                </table>
+                <table class='{ style.table }'>
+                    <tr><th>Feature</th><th>Value imputed</th></tr>
+                    { ''.join(imput_report_table) }
+                </table>
+            </div>
+            <hr class="my-5" />
+            <div class="col">
+                <h2>Initial feature reduction</h2>
+                <h3 class="mt-5">Feature engineering</h3>
+                <p class="mt-3"> 
+                    The next step is to reduce the number of features through feature engineering. There are numerous features
+                    that can be combined to create new features. An example of this would be combining the total number of 
+                    bathrooms in the house. This will reduce the number of features in the model, and give an easier value 
+                    to input to the final model. A total of { len(features_removed) } features were removed and { len(features_consolidated) } 
+                    features were created.
+                </p>
+                <p><strong>Features created:</strong>&nbsp;{', '.join(features_consolidated)}</p>
+
+                <h3 class="mt-5">Remove columns with dominant categories</h3>
+                <p> 
+                    Plotting the categorical columns shows that there are { len(drop_dominant_cols) } of columns that have 
+                    a single dominant value. These columns will be dropped as they will not add any value to the model. 
+                </p>
+                <div class="row">
+                    <div class="{ style.accordion } mb-5" id="dfDetails">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                                    Dominant categories
+                                </button>
+                            </h2>
+                            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#dfDetails">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div id="deadFeatures" class="carousel carousel-dark carousel-fade slide" data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                { ''.join(poor_categories) }
+                                            </div>
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#deadFeatures" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#deadFeatures" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#deadFeatures" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#deadFeatures" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
+                <p>There are similar columns that have similar distributions. Only one column per pair will remain</p>
+                <p><strong>Features removed:</strong>&nbsp;{', '.join(drop_similar_keys)}</p>
+
+                                <div class="row">
+                                    { ''.join(similar_cats) }
+                                </div>
+
+                <p>
+                    The dummy variables will create a large number of columns and to make them as effective as possible I 
+                    consolidated sparse categorical data with binning columns. In some cases they are binarized, others I 
+                    take the top categories and group the rest. A total of { len(bin_list) } columns were binned.
+                </p>            
+                <p><strong>Features binned:</strong>&nbsp;{', '.join(bin_list)}</p> 
+            </div>
+            <hr class="my-5" />
+            <div class="col">
+                <h2>Create dummy variables</h2>
+                <p class="mt-3"> The next step is to create dummy variables for the categorical columns. There are { size_before_dummies}
+                    columns before creating the dummy variables, of which { non_numerical_col_count } are categorical.
+                    This caused the dataset to balloon to { size_after_dummies } columns after the process. 
+                    This is an increase of { size_after_dummies - size_before_dummies } columns.
+                    This can be reduced up front be creating some binary bins for some of the categorical columns. 
+                </p>
+            </div>
+            <hr class="my-5" />
+            <div class="col">
+                <h2>Automated feature selection algorithms</h2>
+                <p class="mt-3"> 
+                    With so many features it's difficult to know which ones are important and which ones are not. 
+                    Rather than guessing at what features are important, I used three automated feature selection algorithms
+                    to help me decide which features to keep. 
+                </p>
+                <p> 
+                    Out of { number_of_features } features, there were only { len(common_features) } common features between all 
+                    three sets of selected variables. { len( two_way_comm ) } features were common between two of the three sets.
+                </p>
+                <p><strong>Common features</strong>: { ',&nbsp; '.join(two_way_comm) }.
+                <p/>
+                <div class="row mt-5">
+                    <div class="col-12 col-md-4 mt-3 pe-1">
+                        <div class="card h-100 text-center">
+                            <div class="card-header {style.bs_card_header}">Recursive feature elimination</div>
+                            <div class="card-body">
+                                RFE is a feature selection algorithm that works by recursively removing 
+                                attributes and building a model on those attributes that remain.
+                            </div>
+                            <table class="{ style.table }">
+                                { rfe_table }
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 mt-3 pe-1">
+                        <div class="card h-100 text-center">
+                            <div class="card-header {style.bs_card_header}">Forward feature selection</div>
+                            <p class="mt-3">
+                                Forward feature selection is an algorithm that works by finding the best feature, and then adding the next. The model 
+                                is built on next best feature, and so on.
+                            </p>
+                            <table class="{ style.table }">
+                                { ffe_table }
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 mt-3">
+                        <div class="card h-100 text-center">
+                            <div class="card-header {style.bs_card_header}">Feature importance</div>
+                            <p class="mt-3">
+                                Feature importance will be calculated based on the model coefficients. This will give an indication of which features
+                                are most important to the model.
+                            </p> 
+                            <span class="align-bottom">                  
+                                <table class="{ style.table } align-bottom">
+                                    { feat_table }
+                                </table>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-5"> After running this a number of times and tracking the results. The features I will go into model building are </p>
+                <p><strong>Features selected:</strong>&nbsp; { ', &nbsp; '.join(final_column_selection) }</p>
+            </div>
+            <hr class="my-5" />
+            <div class="row">
+                <p class="text-center">Continue on to <a class="text-secondary" href="/data-modeling">creating the model</a></p>
             </div>
         </div>
-        <p> There are similar columns that have similar distributions. Only one column per pair will remain</p>
-
-        <p><strong>Features removed:</strong>&nbsp;{', '.join(drop_similar_keys)}</p>
-
-        <div class="{ style.accordion } mb-5" id="dfDetails">
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="headingOne">
-                    <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
-                        Similar feature bar charts
-                    </button>
-                </h2>
-                <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#dfDetails">
-                    <div class="accordion-body">
-                        <div class="row">
-                            { ''.join(similar_cats) }
+        <hr class="my-5" />
+        <div class="row">
+            <div class="{ style.accordion } mb-5" id="code">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="{ style.code_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                        Page code
+                        </button>
+                    </h2>
+                    <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                        <div class="accordion-body">
+                            <div class="row overflow-auto">
+                                <pre>{ code }</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <p>
-            The dummy variables will create a large number of columns and to make them as effective as possible I 
-            consolidated sparse categorical data with binning columns. In some cases they are binarized, others I 
-            take the top categories and group the rest. A total of { len(bin_list) } columns were binned.
-        </p>            
-        <p><strong>Features binned:</strong>&nbsp;{', '.join(bin_list)}</p> 
-    </div>
-    <hr class="my-5" />
-    <div class="col">
-        <h2>Create dummy variables</h2>
-        <p class="mt-3"> The next step is to create dummy variables for the categorical columns. There are { size_before_dummies}
-            columns before creating the dummy variables, of which { non_numerical_col_count } are categorical.
-            This caused the dataset to balloon to { size_after_dummies } columns after the process. 
-            This is an increase of { size_after_dummies - size_before_dummies } columns.
-            This can be reduced up front be creating some binary bins for some of the categorical columns. 
-        </p>
-    </div>
-    <hr class="my-5" />
-    <div class="col">
-        <h2>Automated feature selection algorithms</h2>
-        <p class="mt-3"> 
-            With so many features it's difficult to know which ones are important and which ones are not. 
-            You do not want to start guessing at what features are important, I will use a few automated feature selection algorithms
-            to help me decide which features to keep. 
-        </p>
-        <p> Out of { number_of_features } features, there were only { len(common_features) } common features between all 
-            three sets of selected variables. { len( two_way_comm ) } features were common between two of the three sets.
-        </p>
-        <p><strong>Common features</strong>: { ',&nbsp; '.join(two_way_comm) }.
-        <p/>
-        <div class="row mt-5">
-            <div class="col-4 pe-1">
-                <div class="card h-100 text-center">
-                    <div class="card-header {style.bs_card_header}">Recursive feature elimination</div>
-                    <div class="card-body">
-                        RFE is a feature selection algorithm that works by recursively removing 
-                        attributes and building a model on those attributes that remain.
-                    </div>
-                    <table class="{ style.table }">
-                        { rfe_table }
-                    </table>
-                </div>
-            </div>
-            <div class="col-4 pe-1">
-                <div class="card h-100 text-center">
-                    <div class="card-header {style.bs_card_header}">Forward feature selection</div>
-                    <p class="mt-3">
-                        Forward feature selection is an algorithm that works by finding the best feature, and then adding the next. The model 
-                        is built on next best feature, and so on.
-                    </p>
-                    <table class="{ style.table }">
-                        { ffe_table }
-                    </table>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="card h-100 text-center">
-                    <div class="card-header {style.bs_card_header}">Feature importance</div>
-                    <p class="mt-3">
-                        Feature importance will be calculated based on the model coefficients. This will give an indication of which features
-                        are most important to the model.
-                    </p> 
-                    <span class="align-bottom">                  
-                        <table class="{ style.table } align-bottom">
-                            { feat_table }
-                        </table>
-                    </span>
-                </div>
-            </div>
-        </div>
-        <p class="mt-5"> After running this a number of times and tracking the results. The features I will go into model building are </p>
-        <p><strong>Features selected:</strong>&nbsp; { ', &nbsp; '.join(final_column_selection) }</p>
-    </div>
-    <hr class="my-5" />
-    <div class="row">
-        <p>Lets continue on to <a href="/data-preparation">creating the model</a></p>
-    </div>
-</div>
-<hr class="my-5" />
-<div class="row">
-    <div class="{ style.accordion } mb-5" id="code">
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="headingOne">
-                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
-                   Page code
-                </button>
-            </h2>
-            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
-                <div class="accordion-body">
-                    <div class="row overflow-auto">
-                        <pre>{ code }</pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
     '''
 
     # Cache the page for faster loading 
-    with open('cache/data-preparation', 'w') as f:
+    with open('cache/data-preparation.html', 'w') as f:
         f.write(html_str)
 
     return html_str

@@ -82,7 +82,7 @@ def drop_columns(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
 def drop_post_sale_columns(df: pd.DataFrame) -> pd.DataFrame:
     ''' Returns a dataframe with the post sale columns dropped '''
-    post_sale_columns = ['MoSold', 'YrSold', 'SaleType', 'SaleCondition']
+    post_sale_columns = ['MoSold', 'YrSold', 'SaleType', 'SaleCondition', 'Id']
     df = df.drop(post_sale_columns, axis=1)
     return df
 
@@ -196,12 +196,12 @@ def evaluate_model(model, scaler, x, y, folds=5):
 
     run_data = []
     for train_index, test_index in kf.split(x):
-        if not isinstance(scaler, type(None)):
-            x_train = scaler.fit_transform(x.loc[train_index])
-            x_test  = scaler.transform(x.loc[test_index])
-        else:
+        if isinstance(scaler, type(None)):
             x_train = x.loc[train_index]
             x_test  = x.loc[test_index]
+        else:
+            x_train = scaler.fit_transform(x.loc[train_index])
+            x_test  = scaler.transform(x.loc[test_index])
 
         y_train = y.loc[train_index]
         y_test  = y.loc[test_index]
@@ -216,12 +216,7 @@ def evaluate_model(model, scaler, x, y, folds=5):
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
 
-        # Calculate the sd
-        x = abs(y_pred - np.mean(y_pred)) ** 2
-        sd = np.sqrt(np.mean(x))
-
-
-        run_data.append({'Model': model, 'Scaler': scaler, 'RMSE': rmse, 'SD': sd})
+        run_data.append({'Model': model, 'Scaler': scaler, 'RMSE': rmse})
 
     return run_data
 
@@ -268,7 +263,13 @@ def svg_histogram(x,figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=No
     with StringIO() as file:
         FigureCanvasSVG(fig).print_svg(file)
         svg = file.getvalue()
+
     svg = svg.replace('width="720pt" height="360pt"', 'width="100%" height="100%"')
+
+    # Export the svg for the main page
+    with open('static/salesPrice.svg', 'w') as f:
+        f.write(svg)
+    
     return svg
 
 def svg_scatter(x, y, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, **kwargs) -> str:
@@ -291,6 +292,11 @@ def svg_scatter(x, y, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=
         FigureCanvasSVG(fig).print_svg(file)
         svg = file.getvalue()
     svg = svg.replace('width="720pt" height="360pt"', 'width="80%" height="100%"')
+
+        # Export the svg for the main page
+    with open(f'static/{title}.svg', 'w') as f:
+        f.write(svg)
+
     return svg
 
 def svg_categorical_bar(x:pd.DataFrame,plain=False, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, **kwargs) -> str:
@@ -352,4 +358,8 @@ def svg_rmse(df, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None,
         FigureCanvasSVG(fig).print_svg(file)
         svg = file.getvalue()
     svg = svg.replace('width="720pt" height="360pt"', 'width="100%" height="100%"')
+
+    title = 'stdev' if std_dev else 'rmse'
+    with open(f'static/{title}.svg', 'w') as f:
+        f.write(svg)
     return svg
