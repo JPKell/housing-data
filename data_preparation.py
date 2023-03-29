@@ -9,9 +9,9 @@ def html() -> str:
     ''' Returns the HTML for the page. '''
 
     # Load a cached version of the page if it exists
-    if os.path.exists('cache/data-preparation.html'):
-        with open('cache/data-preparation.html', 'r') as f:
-            return f.read()
+    # if os.path.exists('cache/data-preparation.html'):
+    #     with open('cache/data-preparation.html', 'r') as f:
+    #         return f.read()
 
     df = model.get_df_from_csv('data/housing.csv')
 
@@ -214,6 +214,8 @@ def html() -> str:
     df_drop.to_pickle('data/df_drop.pkl')
     target.to_pickle('data/target.pkl')
 
+    with open('data_preparation.py', 'r') as f:
+        code = f.read().replace('<','&lt;').replace('>','&gt;')
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
     <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
@@ -386,10 +388,30 @@ def html() -> str:
         <p>Lets continue on to <a href="/data-preparation">creating the model</a></p>
     </div>
 </div>
+<hr class="my-5" />
+<div class="row">
+    <div class="{ style.accordion } mb-5" id="code">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                   Page code
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                <div class="accordion-body">
+                    <div class="row overflow-auto">
+                        <pre>{ code }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
     '''
 
     # Cache the page for faster loading 
-    with open('cache/data-preparation.html', 'w') as f:
+    with open('cache/data-preparation', 'w') as f:
         f.write(html_str)
 
     return html_str

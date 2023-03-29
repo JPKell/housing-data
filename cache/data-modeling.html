@@ -44,7 +44,7 @@
         </tr>
     </thead>
     <tbody>
-        <tr><td>LinearRegression</td><td class="">34776.58</td><td class="">6907.38</td><td class="">34978.47</td><td class="">7178.54</td><td class="">34669.91</td><td class="">9537.98</td><td class="">34919.32</td><td class="">5860.56</td></tr><tr><td>Ridge</td><td class="">34872.35</td><td class="bg-warning text-dark">4538.54</td><td class="">36588.73</td><td class="bg-warning text-dark">2624.58</td><td class="">35017.74</td><td class="">5762.90</td><td class="">34420.80</td><td class="">5775.74</td></tr><tr><td>Lasso</td><td class="">34952.84</td><td class="">5439.44</td><td class="">35342.47</td><td class="">9224.98</td><td class="">35069.55</td><td class="">8340.41</td><td class="">34649.06</td><td class="">9058.00</td></tr><tr><td>DecisionTreeRegressor</td><td class="">38721.74</td><td class="">5020.36</td><td class="">39410.63</td><td class="">5706.12</td><td class="">42941.10</td><td class="">7278.15</td><td class="">41198.63</td><td class="">9366.40</td></tr><tr><td>RandomForestRegressor</td><td class="">31509.97</td><td class="">5936.68</td><td class="">31061.08</td><td class="">4461.11</td><td class="">31935.84</td><td class="">4536.30</td><td class="">34477.53</td><td class="">8086.07</td></tr><tr><td>GradientBoostingRegressor</td><td class="bg-warning text-dark">28232.17</td><td class="">4961.81</td><td class="bg-warning text-dark">27452.11</td><td class="">4810.73</td><td class="bg-warning text-dark">26675.26</td><td class="bg-warning text-dark">3917.31</td><td class="bg-warning text-dark">28178.51</td><td class="bg-warning text-dark">4282.08</td></tr>
+        <tr><td>LinearRegression</td><td class="">34481.16</td><td class="">34440.17</td><td class="">34913.30</td><td class="">34867.58</td><td class="">34766.82</td><td class="">34699.79</td><td class="">35265.00</td><td class="">35265.00</td></tr><tr><td>Ridge</td><td class="">35518.10</td><td class="">35455.60</td><td class="">36948.11</td><td class="">36894.03</td><td class="">34443.43</td><td class="">34435.71</td><td class="">34859.94</td><td class="">34859.94</td></tr><tr><td>Lasso</td><td class="">34906.31</td><td class="">34794.19</td><td class="">34978.88</td><td class="">34949.46</td><td class="">34556.20</td><td class="">34448.95</td><td class="">34031.39</td><td class="">34031.39</td></tr><tr><td>DecisionTreeRegressor</td><td class="">36296.24</td><td class="">36208.15</td><td class="">37760.88</td><td class="">37726.38</td><td class="">39496.27</td><td class="">39427.61</td><td class="">36615.69</td><td class="">36615.69</td></tr><tr><td>RandomForestRegressor</td><td class="">32811.21</td><td class="">32782.26</td><td class="">31573.44</td><td class="">31558.05</td><td class="">33759.43</td><td class="">33701.53</td><td class="">31801.18</td><td class="">31801.18</td></tr><tr><td>GradientBoostingRegressor</td><td class="bg-warning text-dark">30743.03</td><td class="bg-warning text-dark">30632.10</td><td class="bg-warning text-dark">29896.87</td><td class="bg-warning text-dark">29774.39</td><td class="bg-warning text-dark">27606.40</td><td class="bg-warning text-dark">27542.75</td><td class="bg-warning text-dark">26862.49</td><td class="bg-warning text-dark">26862.49</td></tr>
     </tbody>
 </table>
 <p> Over a number of runs it was clear that the best model was the <strong>Gradient boosting</strong> model. </p>
@@ -57,11 +57,284 @@
     best models from the cross fold validation. The results of the stacking model are as follows:
 </p>
 <p><strong>Models used:</strong> LinearRegression, Ridge, Lasso, DecisionTreeRegressor, RandomForestRegressor, GradientBoostingRegressor</p>
-<p><strong>RMSE this run:</strong> &nbsp; 34,510.36</p>
+<p><strong>RMSE this run:</strong> &nbsp; 39,758.93</p>
 <p>
     Over 10 runs the average RMSE was 31,140.59 with a standard deviation of 3,728.19.
-    The Gradient boosting model was the best model after all.
+    The Gradient boosting model was the best model so far.
 </p>
 <hr class="my-5" />
 <p>Lets continue the process by further <a href="/model-evaluation.html">evaluating the model</a>.</p>
+<hr class="my-5" />
+<div class="row">
+    <div class="accordion accordion-flush my-3 mb-5" id="code">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button bg-success text-white py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                   Page code
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                <div class="accordion-body">
+                    <div class="row overflow-auto">
+                        <pre>import os, pickle
+# Third party imports
+from flask import url_for
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.linear_model  import Lasso, LinearRegression, Ridge
+from sklearn.tree          import DecisionTreeRegressor
+from sklearn.ensemble      import RandomForestRegressor, GradientBoostingRegressor
+# Local imports
+import model
+import style
+
+def html() -&gt; str:
+    ''' Returns the HTML for the page. '''
+
+    # Load a cached version of the page if it exists
+    # if os.path.exists('cache/data-modeling.html'):
+    #     with open('cache/data-modeling.html', 'r') as f:
+    #         return f.read()
+
+    # Load the pickled data. There may be issues if the pages are run out of order and the model is not yet cached.
+    # perhapts we keep the pkl files around when we flush the cache?
+    train_df = pd.read_pickle('data/df_keep.pkl')
+    target = pd.read_pickle('data/target.pkl')
+
+    # Models
+    # Linear Regression
+    linear = LinearRegression()
+    # Ridge Regression
+    ridge = Ridge(alpha=15.4)
+    # Lasso Regression
+    lasso = Lasso(alpha=0.0006)
+    # Decision Tree
+    dec_tree = DecisionTreeRegressor(criterion='squared_error', max_depth=5)
+    # Random Forest
+    rand_forest = RandomForestRegressor(n_estimators=30, criterion='squared_error', max_depth=5)
+    # Gradient Boosting
+    grad_boost = GradientBoostingRegressor(n_estimators=100)
+
+    # The tuple is for the stacker which needs a list of tuples
+    model_list = [linear, ridge, lasso, dec_tree, rand_forest, grad_boost]
+    
+    model_list_cards = ''
+    for mod in model_list:
+        model_list_cards += f'''&lt;div class="col-6 p-1"&gt;&lt;div class="card h-100 text-center"&gt;&lt;div class="card-body"&gt;{ mod }&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;'''
+    # Scaling
+    scaler_list = [StandardScaler, MinMaxScaler, RobustScaler, None]
+    
+    model_summary = {}
+    folds = 5
+    for mod in model_list:
+        model_summary[mod.__class__.__name__] = {}
+        for scaler in scaler_list:
+            if scaler != None:
+                model_summary[mod.__class__.__name__][scaler.__name__] = {}
+                model_summary[mod.__class__.__name__][scaler.__name__]['rmse'] = []
+                model_summary[mod.__class__.__name__][scaler.__name__]['sd'] = []
+
+            else:
+                model_summary[mod.__class__.__name__]['None'] = {}
+                model_summary[mod.__class__.__name__]['None']['rmse'] = []
+                model_summary[mod.__class__.__name__]['None']['sd'] = []
+
+
+            result = model.evaluate_model(mod, scaler, train_df, target, folds=folds)
+
+            for d in result:
+                if scaler != None:
+                    model_summary[mod.__class__.__name__][scaler.__name__]['rmse'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__][scaler.__name__]['sd'].append(d['SD'])
+                else:
+                    model_summary[mod.__class__.__name__]['None']['rmse'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__]['None']['sd'].append(d['RMSE'])
+
+    # Gather stats for the table so we can highlight the best results
+    stats = {}
+    for m in model_summary:
+        for s in model_summary[m]:
+            stats[s] = {'mean':[], 'sd':[]}
+        break
+
+    for _model in model_summary:
+        for _scaler, data in model_summary[_model].items():
+            mean = np.mean(data['rmse'])
+            std  = np.mean(data['sd'])
+            stats[_scaler]['mean'].append(mean)
+            stats[_scaler]['sd'].append(std)
+
+    # Crossfold Validation table
+    folds_table = ''
+    for m in model_summary:
+        folds_table += f'&lt;tr&gt;&lt;td&gt;{ m }&lt;/td&gt;'
+        for scaler, data in model_summary[m].items():
+            mean = np.mean(data['rmse'])
+            std  = np.mean(data['sd'])
+
+            is_min_mean = mean == min(stats[scaler]['mean'])
+            is_min_std  = std == min(stats[scaler]['sd'])
+        
+            mean_hilight = style.table_highlight if is_min_mean else ''
+            std_hilight  = style.table_highlight if is_min_std else ''
+
+            folds_table += f'&lt;td class="{mean_hilight}"&gt;{mean:.2f}&lt;/td&gt;&lt;td class="{std_hilight}"&gt;{std:.2f}&lt;/td&gt;'
+                
+        folds_table += '&lt;/tr&gt;'
+
+    def evaluateModel(y_test, predictions, _model) -&gt; float:
+        mse = model.mean_squared_error(y_test, predictions)
+        rmse = round(np.sqrt(mse),3)
+        return rmse
+
+    def fitBaseModels(X_train, y_train, X_test, models):
+        dfPredictions = pd.DataFrame()
+
+        # Fit base model and store its predictions in dataframe.
+        for i in range(0, len(models)):
+            models[i].fit(X_train, y_train)
+            predictions = models[i].predict(X_test)
+            colName = str(i)
+            # Add base model predictions to column of data frame.
+            dfPredictions[colName] = predictions
+        return dfPredictions, models
+
+    def fitStackedModel(X, y):
+        model = LinearRegression()
+        model.fit(X, y)
+        return model
+
+    # Split data into train, test and validation sets.
+    X_train, X_temp, y_train, y_temp = model.train_test_split(train_df, target, test_size=0.70)
+    X_test, X_val, y_test, y_val = model.train_test_split(X_temp, y_temp, test_size=0.50)
+
+    # Fit base and stacked models.
+    dfPredictions, models = fitBaseModels(X_train, y_train, X_test, model_list)
+    stackedModel          = fitStackedModel(dfPredictions, y_test)
+
+    # Evaluate base models with validation data.
+    dfValidationPredictions = pd.DataFrame()
+    for i in range(0, len(models)):
+        predictions = models[i].predict(X_val)
+        colName = str(i)
+        dfValidationPredictions[colName] = predictions
+
+    # Evaluate stacked model with validation data.
+    stackedPredictions = stackedModel.predict(dfValidationPredictions)
+
+    stacked_rmse = evaluateModel(y_val, stackedPredictions, stackedModel)
+
+    stacked_results = [37588.89,  32568.18, 35342.92, 26740.74, 33926.85, 26698.88, 31879.72, 31576.92, 28993.93, 26088.86]
+    stacked_mean = np.mean(stacked_results)
+    stacked_std  = np.std(stacked_results)
+
+    # Save the model list for model evaluation next page.
+    with open('data/model_list.pkl', 'wb') as f:
+        pickle.dump(model_list,f)
+
+    # Read the code for the page
+    with open('data_modeling.py', 'r') as f:
+        code = f.read().replace('&lt;', '&lt;').replace('&gt;', '&gt;')
+
+    html_str = f'''
+&lt;div class="row mt-5" style="height:300px;"&gt;
+    &lt;img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;"&gt;
+&lt;/div&gt;    
+&lt;h1 class="mt-5"&gt;Build the data model&lt;/h1&gt;
+&lt;p&gt; 
+    There are multiple models to be built and evaluated. As noted in the initial exploration the data skews right and 
+    for many of the models that will bias the results. Scaling should help to normalize the data. Models must be selected
+    and evaluated. Then tweaked and evaluated again.
+&lt;/p&gt;
+&lt;hr class="my-5" /&gt;
+&lt;h2&gt;Models&lt;/h2&gt;
+&lt;p&gt; 
+    The data is a linear regression problem. I evaluated the following models:
+&lt;/p&gt;
+&lt;div class="row"&gt;
+    { model_list_cards }
+&lt;/div&gt; 
+&lt;hr class="my-5" /&gt;
+&lt;h2&gt;Scaling&lt;/h2&gt;
+&lt;p&gt; 
+    The data is skewed right. Scaling should help to normalize the data. During model building I evaluated { len(scaler_list) }
+    different scaling methods. The results were .... 
+&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Scalers used:&lt;/strong&gt; {', '.join([x.__name__ for x in scaler_list if not isinstance(x, type(None))])}&lt;/p&gt;
+&lt;hr class="my-5" /&gt;
+&lt;h2&gt;Cross fold validation &lt;/h2&gt;
+&lt;p&gt; 
+    The results of many runs are evaluated to determine the best model. The results of a single pass
+    with { folds } folds are as follows:
+&lt;/p&gt;
+&lt;table class="{ style.table }"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th scope="col"&gt;Model&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;StandardScaler&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;Std dev.&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;MinMaxScaler&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;Std dev.&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;RobustScaler&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;Std dev.&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;None&lt;/th&gt;
+            &lt;th scope="col" style="width:10%;"&gt;Std dev.&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        { folds_table }
+    &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt; Over a number of runs it was clear that the best model was the &lt;strong&gt;Gradient boosting&lt;/strong&gt; model. &lt;/p&gt;
+
+
+&lt;hr class="my-5" /&gt;
+&lt;h2&gt;Stacking &lt;/h2&gt;
+&lt;p&gt; 
+    Stacking is a method of combining the results of multiple models. The stacking model is built using the results of the
+    best models from the cross fold validation. The results of the stacking model are as follows:
+&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Models used:&lt;/strong&gt; {', '.join([x.__class__.__name__ for x in model_list])}&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RMSE this run:&lt;/strong&gt; &nbsp; { stacked_rmse :,.2f}&lt;/p&gt;
+&lt;p&gt;
+    Over { len(stacked_results) } runs the average RMSE was { stacked_mean :,.2f} with a standard deviation of { stacked_std :,.2f}.
+    The Gradient boosting model was the best model so far.
+&lt;/p&gt;
+&lt;hr class="my-5" /&gt;
+&lt;p&gt;Lets continue the process by further &lt;a href="/model-evaluation.html"&gt;evaluating the model&lt;/a&gt;.&lt;/p&gt;
+&lt;hr class="my-5" /&gt;
+&lt;div class="row"&gt;
+    &lt;div class="{ style.accordion } mb-5" id="code"&gt;
+        &lt;div class="accordion-item"&gt;
+            &lt;h2 class="accordion-header" id="headingOne"&gt;
+                &lt;button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData"&gt;
+                   Page code
+                &lt;/button&gt;
+            &lt;/h2&gt;
+            &lt;div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code"&gt;
+                &lt;div class="accordion-body"&gt;
+                    &lt;div class="row overflow-auto"&gt;
+                        &lt;pre&gt;{ code }&lt;/pre&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+    '''
+
+    # Cache the html
+    with open('cache/data-modeling.html', 'w') as f:
+        f.write(html_str)
+
+    return html_str
+
+ </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     

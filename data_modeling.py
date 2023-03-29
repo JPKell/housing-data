@@ -15,9 +15,9 @@ def html() -> str:
     ''' Returns the HTML for the page. '''
 
     # Load a cached version of the page if it exists
-    if os.path.exists('cache/data-modeling.html'):
-        with open('cache/data-modeling.html', 'r') as f:
-            return f.read()
+    # if os.path.exists('cache/data-modeling.html'):
+    #     with open('cache/data-modeling.html', 'r') as f:
+    #         return f.read()
 
     # Load the pickled data. There may be issues if the pages are run out of order and the model is not yet cached.
     # perhapts we keep the pkl files around when we flush the cache?
@@ -52,43 +52,52 @@ def html() -> str:
     for mod in model_list:
         model_summary[mod.__class__.__name__] = {}
         for scaler in scaler_list:
+            # Create a dictionary to store the results
             if scaler != None:
-                model_summary[mod.__class__.__name__][scaler.__name__] = []
+                model_summary[mod.__class__.__name__][scaler.__name__] = {}
+                model_summary[mod.__class__.__name__][scaler.__name__]['rmse'] = []
+                model_summary[mod.__class__.__name__][scaler.__name__]['sd'] = []
+
             else:
-                model_summary[mod.__class__.__name__]['None'] = []
+                model_summary[mod.__class__.__name__]['None'] = {}
+                model_summary[mod.__class__.__name__]['None']['rmse'] = []
+                model_summary[mod.__class__.__name__]['None']['sd'] = []
 
             result = model.evaluate_model(mod, scaler, train_df, target, folds=folds)
 
+            # Store the results in the dictionary
             for d in result:
                 if scaler != None:
-                    model_summary[mod.__class__.__name__][scaler.__name__].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__][scaler.__name__]['rmse'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__][scaler.__name__]['sd'].append(d['SD'])
                 else:
-                    model_summary[mod.__class__.__name__]['None'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__]['None']['rmse'].append(d['RMSE'])
+                    model_summary[mod.__class__.__name__]['None']['sd'].append(d['RMSE'])
 
     # Gather stats for the table so we can highlight the best results
     stats = {}
     for m in model_summary:
         for s in model_summary[m]:
-            stats[s] = {'mean':[], 'std':[]}
+            stats[s] = {'mean':[], 'sd':[]}
         break
 
     for _model in model_summary:
-        for _scaler, value in model_summary[_model].items():
-            mean = np.mean(value)
-            std  = np.std(value)
+        for _scaler, data in model_summary[_model].items():
+            mean = np.mean(data['rmse'])
+            std  = np.mean(data['sd'])
             stats[_scaler]['mean'].append(mean)
-            stats[_scaler]['std'].append(std)
+            stats[_scaler]['sd'].append(std)
 
     # Crossfold Validation table
     folds_table = ''
     for m in model_summary:
         folds_table += f'<tr><td>{ m }</td>'
         for scaler, data in model_summary[m].items():
-            mean = np.mean(data)
-            std  = np.std(data)
+            mean = np.mean(data['rmse'])
+            std  = np.mean(data['sd'])
 
             is_min_mean = mean == min(stats[scaler]['mean'])
-            is_min_std  = std == min(stats[scaler]['std'])
+            is_min_std  = std == min(stats[scaler]['sd'])
         
             mean_hilight = style.table_highlight if is_min_mean else ''
             std_hilight  = style.table_highlight if is_min_std else ''
@@ -146,6 +155,10 @@ def html() -> str:
     # Save the model list for model evaluation next page.
     with open('data/model_list.pkl', 'wb') as f:
         pickle.dump(model_list,f)
+
+    # Read the code for the page
+    with open('data_modeling.py', 'r') as f:
+        code = f.read().replace('<', '&lt;').replace('>', '&gt;')
 
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
@@ -213,6 +226,25 @@ def html() -> str:
 </p>
 <hr class="my-5" />
 <p>Lets continue the process by further <a href="/model-evaluation.html">evaluating the model</a>.</p>
+<hr class="my-5" />
+<div class="row">
+    <div class="{ style.accordion } mb-5" id="code">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                   Page code
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                <div class="accordion-body">
+                    <div class="row overflow-auto">
+                        <pre>{ code }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     '''
 
     # Cache the html

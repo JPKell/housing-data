@@ -215,7 +215,13 @@ def evaluate_model(model, scaler, x, y, folds=5):
         # Calculate the evaluation metrics
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
-        run_data.append({'Model': model, 'Scaler': scaler, 'RMSE': rmse})
+
+        # Calculate the sd
+        x = abs(y_pred - np.mean(y_pred)) ** 2
+        sd = np.sqrt(np.mean(x))
+
+
+        run_data.append({'Model': model, 'Scaler': scaler, 'RMSE': rmse, 'SD': sd})
 
     return run_data
 

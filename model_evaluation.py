@@ -58,6 +58,9 @@ def html() -> str:
     with open('data/final_model.pkl', 'wb') as f:
         pickle.dump(final_model, f)
 
+    # Load the code preview for the page
+    with open('model_evaluation.py', 'r') as f:
+        code = f.read().replace('<', '&lt;').replace('>', '&gt;')
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
     <img src="{url_for('static', filename='banner-home.jpg')}" alt="Homes" style="width:100%;height:300px;object-fit: cover;">
@@ -94,6 +97,25 @@ def html() -> str:
 <p> The final model is: { final_model["Model"]} with an average RMSE of { final_model["Avg. RMSE"] :,.2f} and a standard deviation of { final_model["Std. Dev"] :,.2f}</p>
 <hr class="my-5" />
 <p> Now onto a <a href="/model-deployment">deployment demonstration</a>. </p>
+<hr class="my-5" />
+<div class="row">
+    <div class="{ style.accordion } mb-5" id="code">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                   Page code
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                <div class="accordion-body">
+                    <div class="row overflow-auto">
+                        <pre>{ code }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     '''
 
 

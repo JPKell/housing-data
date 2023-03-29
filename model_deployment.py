@@ -64,6 +64,9 @@ def html(form) -> str:
             <p> The predicted selling price of the home is <strong>${ prediction[0] :,.2f}</strong> </p>
         '''
    
+    # Get the code for the page
+    with open('model_deployment.py', 'r') as f:
+        code = f.read().replace('<', '&lt;').replace('>', '&gt;')
 
     html_str = f'''
 <div class="row mt-5" style="height:300px;">
@@ -179,6 +182,24 @@ def html(form) -> str:
     </div>
 </form>
 <hr class="my-5" />
+<div class="row">
+    <div class="{ style.accordion } mb-5" id="code">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                   Page code
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                <div class="accordion-body">
+                    <div class="row overflow-auto">
+                        <pre>{ code }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {result_html}
     '''
 

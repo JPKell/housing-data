@@ -11,9 +11,9 @@ def html() -> str:
     ''' Returns the HTML for the page. '''
 
     # Check for a cached version of the data and return it if it exists
-    if os.path.exists('cache/data-exploration.html'):
-        with open('cache/data-exploration.html', 'r') as f:
-            return f.read()
+    # if os.path.exists('cache/data-exploration.html'):
+    #     with open('cache/data-exploration.html', 'r') as f:
+    #         return f.read()
 
     # Basic data loading and summaries
     df = model.get_df_from_csv()
@@ -70,6 +70,10 @@ def html() -> str:
             </div>'''
         active = ''
         neg_corr_plots.append(html_str)
+
+    # read in the code for the page
+    with open('data_exploration.py', 'r') as f:
+        code = f.read().replace('<', '&lt;').replace('>', '&gt;')
 
     html_str = f'''
             <div class="row mt-5" style="height:300px;">
@@ -267,9 +271,28 @@ def html() -> str:
                     </div>
                     <p>Overall these are all poor negativly correlated features</p>
                 </div>
-                <hr />
+                <hr class="my-5"/>
                 <div class="row mt-3">
                     <p>Now armed with this information we continue to <a href="/data-preparation">prepare the data</a></p>
+                </div>
+            </div>
+            <hr class="my-5" />
+            <div class="row">
+                <div class="{ style.accordion } mb-5" id="code">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="{ style.accordion_button }" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                            Page code
+                            </button>
+                        </h2>
+                        <div id="collapseData" class="accordion-collapse collapse" data-bs-parent="#code">
+                            <div class="accordion-body">
+                                <div class="row overflow-auto">
+                                    <pre>{ code }</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 ''' 
