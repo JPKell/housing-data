@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request
 
 import assignment_code, data_description, data_exploration, data_modeling, data_preparation, index, model_deployment, model_evaluation
 
