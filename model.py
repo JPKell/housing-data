@@ -13,18 +13,16 @@ from sklearn.preprocessing      import MinMaxScaler, RobustScaler, StandardScale
 from sklearn.tree               import DecisionTreeRegressor 
 from sklearn.ensemble           import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model       import Ridge, Lasso, LinearRegression
-from sklearn.model_selection    import GridSearchCV
-from sklearn.pipeline           import make_pipeline
-from sklearn.model_selection    import KFold, cross_val_score
+from sklearn.model_selection    import KFold
 from sklearn.metrics            import mean_squared_error
-from sklearn.metrics            import r2_score
-
 from sklearn.ensemble           import StackingRegressor
-
-from   sklearn.linear_model import LinearRegression
-from   sklearn.feature_selection import RFE
+from sklearn.linear_model       import LinearRegression
+from sklearn.feature_selection  import RFE
 
 import style
+
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 
 # Read and write files
 def get_df_from_csv(path='data/housing.csv') -> pd.DataFrame:
@@ -249,14 +247,14 @@ def svg_histogram(x,figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=No
     ''' Creates a matplotlib histogram and returns the svg as a string '''
     fig = Figure(figsize=figsize, tight_layout=True)
     ax = fig.subplots(1,1)
-    ax.hist(x, color=style.css_color,  rwidth=0.9,**kwargs)
+    ax.hist(x, rwidth=0.9,**kwargs)
 
     if x_lab:
-        ax.set_xlabel(x_lab, **style.font)
+        ax.set_xlabel(x_lab)
     if y_lab:
-        ax.set_ylabel(y_lab, **style.font)
+        ax.set_ylabel(y_lab)
     if title:
-        ax.set_title(title, **style.font)
+        ax.set_title(title)
 
     # Rather than write out the file, just store it in a buffer. 
     with StringIO() as file:
@@ -276,15 +274,16 @@ def svg_scatter(x, y, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=
     fig = Figure(figsize=figsize, tight_layout=True)
     ax = fig.subplots(1,1)
     # scatter plot with regression line
-    ax.scatter(x, y, c=style.css_color , **kwargs)
+    ax.scatter(x, y, **kwargs)
+    # ax.scatter(x, y, c=style.css_color , **kwargs)
     ax.plot(np.unique(x), np.poly1d(np.polyfit(x, y, 1))(np.unique(x)), color=style.warning)
 
     if x_lab:
-        ax.set_xlabel(x_lab, **style.font)
+        ax.set_xlabel(x_lab)
     if y_lab:
-        ax.set_ylabel(y_lab, **style.font)
+        ax.set_ylabel(y_lab)
     if title:
-        ax.set_title(title, **style.font)
+        ax.set_title(title)
 
     # Rather than write out the file, just store it in a buffer. 
     with StringIO() as file:
@@ -308,19 +307,20 @@ def svg_categorical_bar(x:pd.DataFrame,plain=False, figsize=(10,5), x_lab:str=No
     x = x.value_counts().index
 
 
-    ax.bar(x, y, color=style.css_color, **kwargs)
+    ax.bar(x, y, **kwargs)
+    # ax.bar(x, y, color=style.css_color, **kwargs)
     if plain:
         ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
         ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
     if x_lab:
-        ax.set_xlabel(x_lab, **style.font)
+        ax.set_xlabel(x_lab)
     if y_lab:
-        ax.set_ylabel(y_lab, **style.font)
+        ax.set_ylabel(y_lab)
     if title:
-        new_font = style.font.copy()
-        new_font['size'] = 26
-        ax.set_title(title, **new_font)
+        # new_font = style.font.copy()
+        # new_font['size'] = 26
+        ax.set_title(title)
 
     # Rather than write out the file, just store it in a buffer. 
     with StringIO() as file:
@@ -346,11 +346,11 @@ def svg_rmse(df, figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None,
         ax.legend(df.columns)
 
     if x_lab:
-        ax.set_xlabel(x_lab, **style.font)
+        ax.set_xlabel(x_lab)
     if y_lab:
-        ax.set_ylabel(y_lab, **style.font)
+        ax.set_ylabel(y_lab)
     if title:
-        ax.set_title(title, **style.font)
+        ax.set_title(title)
 
     # Rather than write out the file, just store it in a buffer. 
     with StringIO() as file:
