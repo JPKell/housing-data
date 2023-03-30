@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, redirect
 
 import assignment_code, data_description, data_exploration, data_modeling, data_preparation, index, model_deployment, model_evaluation
@@ -39,3 +41,13 @@ def model_deployment_pagge():
 @app.route("/code")
 def assignment_code_page():
     return render_template("page.html", page='code',body=assignment_code.html())
+
+@app.route("/clear-cache")
+def clear_cache():
+    html = ['cache/data-exploration.html', 'cache/data-modeling.html', 'cache/data-preparation.html', 'cache/model-evaluation.html']
+    for page in html:
+        try:
+            os.remove(page)
+        except:
+            ... # If the page has not been loaded yet or clear cache is double clicked os.remove throws error
+    return "OK", 200
