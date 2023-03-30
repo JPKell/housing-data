@@ -247,7 +247,6 @@ def model_stacker(models, x_train, y_train):
 # Outputs
 def svg_histogram(x,figsize=(10,5), x_lab:str=None, y_lab:str=None, title:str=None, **kwargs) -> str:
     ''' Creates a matplotlib histogram and returns the svg as a string '''
-    print(x)
     fig = Figure(figsize=figsize, tight_layout=True)
     ax = fig.subplots(1,1)
     ax.hist(x, color=style.css_color,  rwidth=0.9,**kwargs)

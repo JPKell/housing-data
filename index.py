@@ -99,16 +99,6 @@ def html() -> str:
         </div>
     </div>
     <hr class="my-5" />
-    <p> 
-        A note about the site. In the real world this dataset would be updated often with fresh data which would impact the model.
-        Each page has the code behind it to do every transformation and calculation discussed. The code is available at the bottom
-        of each page. Since many of these workflows take time the data is run once and the output is cached. You can reset the cache,
-        but be aware this will make the first load of each page slower.  
-    </p>      
-    <div class="d-flex justify-content-center">
-        <button class="btn btn-warning" onclick="clearCache()">Clear cache</button>
-    </div>
-    <hr class="my-5" />
     <div class="row d-flex justify-content-even text-center">
         <div class="col"><a class="text-secondary" href="/data-exploration"> Learn more about the model</a></div>
         <div class="col"><a class="text-secondary" href="/model-deployment"> Jump to the deployment</a></div>
@@ -118,3 +108,18 @@ def html() -> str:
 
 
     return html_str
+
+
+'''
+    <hr class="my-5" />
+    <p> 
+        A note about the site. In the real world this dataset would be updated often with fresh data which would impact the model.
+        Each page has the code behind it to do every transformation and calculation discussed. The code is available at the bottom
+        of each page. Since many of these workflows take time the data is run once and the output is cached. You can reset the cache,
+        but be aware this will make the first load of each page slower.  
+    </p>      
+    <div class="d-flex justify-content-center">
+        <button class="btn btn-warning" onclick="clearCache()">Clear cache</button>
+    </div>
+
+'''
